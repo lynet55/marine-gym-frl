@@ -1,0 +1,335 @@
+# @package _global_
+headless: true
+enable_livestream: false
+mode: train
+
+# Shared task fields expected by marinegym init/setup paths.
+sim: ${task.sim}
+env: ${task.env}
+viewer: ${task.viewer}
+
+seed: 0
+disable_progressbar: false
+
+wandb:
+  enable: false
+  project: bluerov_hover_vel_lwm
+  username: ""
+  mode: online
+  group: bluerov_hover_vel_distill_v1
+  run_name: ""
+  job_type: ""
+  tags: [hover_vel, distill, bt_teacher]
+
+# Checkpoint / resume
+checkpoint_dir: ${hydra:runtime.cwd}/checkpoints_isaaclab_hover_vel_distill
+resume_checkpoint: ""
+resume_optimizer: true
+
+# Runner (shared)
+train_iters: 4000
+steps_per_iter: 64
+save_interval: 25
+init_at_random_ep_len: false
+
+# BT distillation schedule:
+# stage-1 (0..800): strong teacher
+# stage-2 (801..1600): reduced teacher weight
+# stage-3 (1601..4000): pure RL
+distill_bt:
+  enable: true
+  batch_size: 1024
+  gradient_steps: 2
+  learning_rate: 1.5e-4
+  loss_weight: 1.0
+  loss_weight_start: 1.0
+  loss_weight_end: 0.0
+  loss_weight_schedule: two_stage
+  stage1_end_iter: 800
+  stage2_weight: 0.2
+  max_grad_norm: 1.0
+  start_iter: 0
+  end_iter: 1600
+  bt:
+    goal_tolerance: ${task.success_distance}
+    align_yaw_threshold: 0.25
+    k_move_xy: 0.60
+    k_move_z: 0.70
+    k_yaw: 0.80
+    k_damp: 0.80
+
+# Optional latent world model (safe rollout: disabled by default).
+# To revert to previous implementation behavior, keep this disabled.
+world_model:
+  enable: false
+  latent_dim: 64
+  hidden_dims: [128, 128]
+  target_obs_dim: 24
+  batch_size: 2048
+  gradient_steps: 2
+  learning_rate: 3.0e-4
+  max_grad_norm: 1.0
+  loss_recon_weight: 1.0
+  loss_dyn_weight: 0.2
+  use_nll: true
+  logvar_min: -6.0
+  logvar_max: 2.0
+  # Optional uncertainty-based teacher weighting.
+  risk_reweight_enable: false
+  risk_reweight_gain: 0.8
+  risk_reweight_max: 2.0
+  risk_unc_ema_alpha: 0.05
+  # Phase-2 coupling: append [wm_uncertainty, wm_pred_error] to policy obs.
+  obs_feature_enable: false
+  obs_feature_dim: 2
+  obs_feature_scale: 2.0
+  obs_feature_min_batches: 8
+
+# Keep curriculum off initially for this task; enable later if needed.
+curriculum:
+  enable: false
+
+# rsl_rl / IsaacLab PPO config
+rsl:
+  num_steps_per_env: ${steps_per_iter}
+  save_interval: ${save_interval}
+  logger: tensorboard
+  wandb_project: ${wandb.project}
+  obs_groups: {}
+  policy:
+    class_name: ActorCritic
+    actor_obs_normalization: true
+    critic_obs_normalization: true
+    actor_hidden_dims: [256, 256]
+    critic_hidden_dims: [256, 256]
+    activation: elu
+    init_noise_std: 0.20
+    noise_std_type: log
+    state_dependent_std: false
+  algorithm:
+    class_name: PPO
+    num_learning_epochs: 6
+    num_mini_batches: 4
+    clip_param: 0.2
+    gamma: 0.99
+    lam: 0.95
+    value_loss_coef: 1.5
+    entropy_coef: 0.003
+    learning_rate: 3.0e-4
+    max_grad_norm: 1.0
+    use_clipped_value_loss: true
+    schedule: adaptive
+    desired_kl: 0.02
+    normalize_advantage_per_mini_batch: true
+
+# skrl A2C config
+a2c:
+  hidden_dims: [256, 256]
+  rollouts: ${steps_per_iter}
+  mini_batches: 1
+  discount_factor: 0.99
+  gae_lambda: 0.95
+  learning_rate: 3.0e-4
+  random_timesteps: 0
+  learning_starts: 0
+  grad_norm_clip: 1.0
+  entropy_loss_scale: 0.003
+  time_limit_bootstrap: true
+  mixed_precision: false
+  write_interval: 500
+  policy_init_log_std: -1.2
+  policy_min_log_std: -5.0
+  policy_max_log_std: 2.0
+
+# skrl SAC config
+sac:
+  hidden_dims: [256, 256]
+  replay_size: 500000
+  gradient_steps: 1
+  batch_size: 256
+  discount_factor: 0.99
+  polyak: 0.005
+  actor_learning_rate: 2.0e-4
+  critic_learning_rate: 1.0e-4
+  entropy_learning_rate: 1.0e-4
+  random_timesteps: 0
+  learning_starts: 2048
+  grad_norm_clip: 1.0
+  learn_entropy: true
+  initial_entropy_value: 0.2
+  target_entropy: null
+  mixed_precision: false
+  write_interval: 500
+  policy_min_log_std: -5.0
+  policy_max_log_std: 2.0
+
+defaults:
+  - /task: hover_vel_stable_goal
+  - _self_
+
+# Fix task-local interpolation expected by hover_vel_stable_goal mapping config.
+task:
+  env:
+    # Match BT play horizon.
+    max_episode_length: 3000
+  # Match BT play goal criterion.
+  success_distance: 1.0
+  # Slight urgency bonus: discourage long episodes.
+  reward_alive: -0.01
+  # Add obstacle-aware shaping for local avoidance.
+  reward_clearance_penalty_weight: 0.1
+  reward_ttc_penalty_weight: 0.3
+  reward_aggressive_vel_penalty_weight: 1.0
+  max_body_speed: 0.7
+  clearance_soft_distance: 0.9
+  ttc_horizon: 3.0
+  ttc_min_forward_speed: 0.05
+  # Path-following reward mode (track planner lookahead instead of pure goal vector).
+  path_follow_reward_enable: true
+  path_follow_use_goal_fallback: true
+  path_follow_replan_interval: 8
+  path_follow_lookahead_steps: 2
+  path_progress_clip: 2.0
+  reward_path_progress_weight: 12.0
+  reward_path_distance_weight: 0.05
+  reward_path_heading_weight: 0.15
+  reward_path_crosstrack_weight: 0.35
+  # Terminate episodes when robot gets too close to maze walls/obstacles.
+  terminate_on_collision: true
+  collision_distance: 0.08
+  # Optional TTC-based early stop for imminent sonar-detected collisions.
+  terminate_on_ttc: true
+  termination_ttc_threshold: 0.12
+  termination:
+    enable: true
+  # Match sonar setup used in play_bluerov_behavior_tree_maze.
+  sonar:
+    num_rays: 256
+    fov_deg: 360.0
+    max_range: 12.0
+    min_range_filter: 0.2
+    hit_path_allow: []
+    hit_path_deny: ["/target", "/BlueROV", "/bluerov", "/drone", "/robot", "/base_link"]
+    filter_by_env: false
+    ignore_empty_path: false
+    debug_first_hit: true
+  observation:
+    sonar_features_enable: true
+    sonar_num_sectors: 16
+    include_front_min: true
+    include_front_ttc: true
+    front_angle_deg: 30.0
+    use_path_lookahead: true
+    path_lookahead_points: 2
+    path_fallback_to_goal: true
+  # Keep maze walls intersecting the sonar scan plane.
+  maze_walls:
+    thickness: 0.20
+    height: 1.80
+    spawn_ranges:
+      z_range: [-0.8, -0.8]
+  planner_stack:
+    rrt:
+      planner_type: voronoi
+      use_map: true
+      path_replan_enable: false
+      path_replan_lookahead: 10
+      obstacle_inflate: 0.08
+      min_clearance: 0.0
+      occ_clearance: 0.0
+      map_occ_threshold: 0.45
+      map_path_replan_threshold: 0.55
+      map_occ_step: 0.07
+      dynamic_predict_enable: true
+      dynamic_predict_horizon_sec: 2.5
+      dynamic_predict_samples: 5
+      dynamic_predict_vel_ema: 0.35
+      dynamic_predict_min_speed: 0.05
+      dynamic_predict_speed_clip: 2.0
+      dynamic_predict_inflate_add: 0.03
+      dynamic_predict_inflate_per_mps: 0.12
+      dynamic_predict_replan_enable: true
+      dynamic_predict_replan_margin: 0.05
+      dynamic_predict_replan_horizon_sec: 2.5
+      dynamic_predict_assumed_robot_speed: 0.30
+      replan_live_debug: true
+      grid_resolution: 0.20
+      voronoi_clearance_eps: 0.05
+      voronoi_fallback_rrt_enable: true
+      plot_every: 0
+    sonar:
+      num_rays: 64
+      fov_deg: 360.0
+      origin_offset: 0.15
+      min_range_filter: 0.35
+      hit_path_deny: ["/target", "/BlueROV", "/bluerov", "/drone", "/robot", "/base_link"]
+    policy:
+      min_range_replan: 0.35
+      stuck_replan_steps: 140
+  mapping:
+    # Keep mapper source same as BT play setup unless explicitly overridden.
+    use_external_mapper: false
+    path_overlay_goal_tolerance: ${task.success_distance}
+    # Enable mapping so path overlay can drive path-following observation/reward.
+    enable: true
+    # Keep saving off during training for speed; enable via CLI when needed.
+    save_every: 0
+    save_dir: ${hydra:runtime.cwd}/map_hover_vel_train
+    save_env_id: 0
+    update_all: true
+    self_clear_radius: 0.55
+    min_hit_range: 0.30
+    reset_on_reset: false
+    mark_free: true
+    free_dec: 0.01
+    decay: 0.0
+    occ_inc: 1.2
+    static_hit_stamp_radius_m: 0.12
+    static_hit_stamp_inc: 0.35
+    dynamic_hit_stamp_radius_m: 0.10
+    dynamic_hit_stamp_inc: 0.25
+    use_depth: false
+    depth_occ_weight: 0.15
+    depth_gate_with_sonar: true
+    depth_sonar_gate_tol: 0.60
+    classify_dynamic_from_gt: true
+    dynamic_stamp_from_gt: true
+    maze_stamp_from_gt: true
+    maze_occ_inc: 0.60
+    dynamic_stamp_radius_m: 0.10
+    dynamic_classify_margin: 0.08
+    dynamic_occ_inc: 0.55
+    dynamic_decay: 0.12
+    dynamic_free_dec: 0.08
+    show_static: true
+    show_dynamic: true
+    show_sonar_hits: true
+    show_sonar_rays: false
+    sonar_hit_marker_size: 7.0
+    sonar_hit_alpha: 0.85
+    sonar_ray_stride: 4
+    maze_wall_sonar_fallback: true
+    dynamic_obstacle_sonar_fallback: true
+    path_overlay_enable: true
+    path_overlay_planner: voronoi
+    path_overlay_occ_threshold: 0.55
+    path_overlay_occ_step: 0.07
+    path_overlay_resample_step: 0.35
+    path_overlay_grid_resolution: 0.20
+    path_overlay_clearance_eps: 0.02
+    path_overlay_rrt_step_size: 0.8
+    path_overlay_rrt_max_iters: 700
+    path_overlay_rrt_goal_sample_rate: 0.12
+    path_overlay_rrt_neighbor_radius: 2.0
+    path_overlay_wall_margin: 0.0
+    path_overlay_min_clearance: 0.1
+    path_overlay_occ_clearance: 0.1
+    path_overlay_dynamic_predict_enable: true
+    path_overlay_dynamic_horizon_sec: 2.5
+    path_overlay_dynamic_samples: 5
+    path_overlay_dynamic_vel_ema: 0.35
+    path_overlay_dynamic_min_speed: 0.05
+    path_overlay_dynamic_speed_clip: 2.0
+    path_overlay_dynamic_inflate_add: 0.01
+    path_overlay_dynamic_inflate_per_mps: 0.06
+    dynamic_from_observation_only: false

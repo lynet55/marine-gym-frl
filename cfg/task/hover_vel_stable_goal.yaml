@@ -1,0 +1,287 @@
+name: HoverVelStableGoal
+debug: false
+debug_interval: 50
+
+defaults:
+  - /base/env_base@_here_
+  - /base/sim_base@_here_
+
+env:
+  num_envs: 64
+  env_spacing: 20
+  max_episode_length: 2000
+
+viewer:
+  eye: [4.0, 4.0, 1.0]
+  lookat: [0.0, 0.0, -0.9]
+  resolution: [1280, 720]
+
+sim:
+  enable_scene_query_support: true
+  clone_mode: copy
+  replicate_physics: false
+
+# Tank environment mesh, bundled at assets/usd/BlueROV/tank.usd in this repo.
+# Override with TANK_USD_PATH (or task.tank_usd_path=... on the CLI) to swap
+# in a custom scene — see docs/CUSTOM_ENVIRONMENT.md.
+tank_usd_path: ${oc.env:TANK_USD_PATH,${hydra:runtime.cwd}/assets/usd/BlueROV/tank.usd}
+
+# Randomized starts around a fixed goal keeps the task simple and learnable.
+spawn_ranges:
+  x_range: [2.0, 18.0]
+  y_range: [1.2, 4.8]
+  z_range: [-1.2, -0.4]
+
+goal:
+  randomize: true
+  fixed: [10.0, 3.0, -0.9]
+  spawn_ranges:
+    x_range: [2.0, 18.0]
+    y_range: [1.2, 4.8]
+    z_range: [-1.2, -0.4]
+  min_start_goal_dist: 3.0
+  resample_tries: 12
+
+# success_distance: 0.7
+# success_hold_steps: 2
+# success_bonus: 60.0
+# reward_termination_penalty: 120.0
+
+# reward_alive: 0.0
+# reward_progress_weight: 8.0
+# reward_distance_weight: 0.03
+# reward_upright_weight: 0.20
+# reward_yaw_weight: 0.10
+# reward_tilt_penalty_weight: 0.08
+# reward_effort_penalty_weight: 0.005
+# reward_aggressive_vel_penalty_weight: 2.0
+# reward_clearance_penalty_weight: 1.0
+# reward_ttc_penalty_weight: 0.7
+# clearance_soft_distance: 0.8
+# ttc_horizon: 3.0
+# ttc_min_forward_speed: 0.05
+# max_body_speed: 0.7
+  success_distance: 1.0
+  # Slight urgency bonus: discourage long episodes.
+  reward_alive: -0.01
+  # Add obstacle-aware shaping for local avoidance.
+  reward_clearance_penalty_weight: 0.1
+  reward_ttc_penalty_weight: 0.3
+  reward_aggressive_vel_penalty_weight: 1.0
+  max_body_speed: 0.7
+  clearance_soft_distance: 0.9
+  ttc_horizon: 3.0
+  ttc_min_forward_speed: 0.05
+  # Path-following reward mode (track planner lookahead instead of pure goal vector).
+  path_follow_reward_enable: true
+  path_follow_use_goal_fallback: true
+  path_follow_replan_interval: 8
+  path_follow_lookahead_steps: 2
+  path_progress_clip: 2.0
+  reward_path_progress_weight: 12.0
+  reward_path_distance_weight: 0.05
+  reward_path_heading_weight: 0.15
+  reward_path_crosstrack_weight: 0.35
+  # Terminate episodes when robot gets too close to maze walls/obstacles.
+  terminate_on_collision: true
+  collision_distance: 0.08
+  # Optional TTC-based early stop for imminent sonar-detected collisions.
+  terminate_on_ttc: true
+  termination_ttc_threshold: 0.12
+
+reset:
+  # Enforce a stable initial state at each episode reset.
+  stable_pose: true
+  zero_velocity: true
+  yaw_deg: 0.0
+  random_yaw: true
+  yaw_range_deg: [-180.0, 180.0]
+
+termination:
+  enable: false
+  terminate_on_invalid_state: false
+  terminate_out_of_tank: true
+  tank_margin: 0.0
+  tank_bounds:
+    x_range: [0.8, 19.2]
+    y_range: [0.8, 5.2]
+    z_range: [-1.4, -0.2]
+  grace_steps: 10
+  hasnan_grace_steps: 80
+  min_z: -2.5
+  max_z: 0.2
+  max_distance: 25.0
+
+drone_model:
+  name: BlueROV
+  controller: LeePositionController
+
+force_sensor: false
+time_encoding: false
+
+# Required by marinegym.envs.single.hover.Hover initialization.
+reward_effort_weight: 0.0
+reward_action_smoothness_weight: 0.0
+reward_distance_scale: 1.0
+
+disturbances:
+  train:
+    payload:
+      enable_payload: false
+      z: [0.0, 0.0]
+      mass: [1.0, 1.0]
+    flow:
+      enable_flow: false
+      max_flow_velocity: [0, 0, 0, 0, 0, 0]
+      flow_velocity_gaussian_noise: [0, 0, 0, 0, 0, 0]
+  eval:
+    payload:
+      enable_payload: false
+      z: [0.0, 0.0]
+      mass: [1.0, 1.0]
+    flow:
+      enable_flow: false
+      max_flow_velocity: [0, 0, 0, 0, 0, 0]
+      flow_velocity_gaussian_noise: [0, 0, 0, 0, 0, 0]
+  play:
+    payload:
+      enable_payload: false
+      z: [0.0, 0.0]
+      mass: [1.0, 1.0]
+    flow:
+      enable_flow: false
+      max_flow_velocity: [0, 0, 0, 0, 0, 0]
+      flow_velocity_gaussian_noise: [0, 0, 0, 0, 0, 0]
+
+sonar:
+  num_rays: 256
+  fov_deg: 360.0
+  max_range: 8.0
+  include_angle_encoding: false
+  min_range_filter: 0.2
+
+observation:
+  sonar_features_enable: false
+  sonar_num_sectors: 12
+  include_front_min: true
+  include_front_ttc: true
+  front_angle_deg: 30.0
+  use_path_lookahead: false
+  path_lookahead_points: 2
+  path_fallback_to_goal: true
+
+depth_camera:
+  enable: true
+  resolution: [128, 72]
+  data_type: distance_to_camera
+  extra_data_types: []
+  clip_range: [0.05, 20.0]
+  max_range: 10.0
+  fov_deg: 90.0
+  min_range_filter: 0.2
+  offset: [0.2, 0.0, 0.0]
+  rot_offset_deg: [0.0, -90.0, 0.0]
+  fail_limit: 10
+
+mapping:
+  enable: false
+  use_in_obs: false
+  grid_size: 128
+  bounds_min: [0.0, 0.0, -1.5]
+  bounds_max: [20.0, 6.0, 0.0]
+  max_range: 10.0
+  use_depth: true
+  depth_range: 5.0
+  decay: 0.001
+  occ_inc: 1.0
+  mark_free: true
+  free_dec: 0.015
+  self_clear_radius: 0.35
+  min_hit_range: 0.40
+  depth_row_band: [0.35, 0.65]
+  depth_occ_weight: 0.25
+  depth_gate_with_sonar: true
+  depth_sonar_gate_tol: 0.6
+  # Analytic sonar fallbacks for mapping robustness in sparse-hit scenes.
+  maze_wall_sonar_fallback: true
+  maze_wall_margin_xy: 0.06
+  maze_wall_margin_z: 0.08
+  dynamic_obstacle_sonar_fallback: true
+  plot_pad_x: 0.6
+  plot_pad_y: 0.6
+  max_samples: 256
+  update_all: false
+  update_env_id: 0
+  reset_on_reset: true
+  save_every: 0
+  save_dir: map
+  save_env_id: 0
+  # Optional map-only global path overlay (does not affect robot control/actions).
+  path_overlay_enable: false
+  path_overlay_planner: voronoi  # voronoi | rrt
+  path_overlay_occ_threshold: 0.45
+  path_overlay_occ_step: 0.07
+  path_overlay_goal_tolerance: ${success_distance}
+  path_overlay_resample_step: 0.35
+  path_overlay_grid_resolution: 0.20
+  path_overlay_clearance_eps: 0.05
+  path_overlay_rrt_step_size: 0.8
+  path_overlay_rrt_max_iters: 700
+  path_overlay_rrt_goal_sample_rate: 0.12
+  path_overlay_rrt_neighbor_radius: 2.0
+  path_overlay_wall_margin: 0.0
+  path_overlay_min_clearance: 0.1
+  path_overlay_occ_clearance: 0.0
+  path_overlay_dynamic_predict_enable: true
+  path_overlay_dynamic_horizon_sec: 2.5
+  path_overlay_dynamic_samples: 5
+  path_overlay_dynamic_vel_ema: 0.35
+  path_overlay_dynamic_min_speed: 0.05
+  path_overlay_dynamic_speed_clip: 2.0
+  path_overlay_dynamic_inflate_add: 0.03
+  path_overlay_dynamic_inflate_per_mps: 0.12
+
+controller:
+  # If true, bypass thruster allocation and command 4D block-like motion directly:
+  # [surge, sway, heave, yaw_rate].
+  simple_block_4d: true
+  simple_block_zero_thrusters: true
+  simple_block_vel_blend: 1.0
+  thrust_axis: 1
+  thrust_sign: 1.0
+  u_max: 0.7
+  v_max: 0.55
+  w_max: 0.55
+  r_max: 0.5
+  vel_kp: 2.0
+  yaw_rate_kp: 1.5
+  stabilize_rp: true
+  rp_kp: 3.0
+  rp_kd: 0.4
+  allocation_update_every: 1
+  action_smooth_alpha: 0.01
+  max_accel: 1
+  max_force: null
+  max_torque: 2.0
+
+
+maze_walls:
+  enable: true
+  num: 5
+  # Slightly shorter walls avoids over-blocking when count is high.
+  length: 0.5
+
+obstacles:
+  enable: true 
+  num: 4
+  radius: 0.25
+  height: 0.5
+  spread: 0.6
+  speed: 0.4
+  motion: line
+  line_axis: y
+  amp: [1.5, 1.2, 0.0]
+  spawn_ranges:
+    x_range: [1.0, 19.0]
+    y_range: [1.0, 5.2]
+    z_range: [-1.6, 0.7]

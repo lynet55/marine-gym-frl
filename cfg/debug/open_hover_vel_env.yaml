@@ -1,0 +1,318 @@
+# @package _global_
+# Visual environment sanity launcher for HoverVelStableGoal.
+# This opens the same task family used by the policy training, but without
+# loading a policy or running learning.
+
+defaults:
+  - /train: train_bluerov_isaaclab_hover_vel_distill
+  - _self_
+
+headless: false
+enable_livestream: false
+# MarineGym indexes task.disturbances by cfg.mode; use an existing mode.
+mode: play
+seed: 0
+
+sim: ${task.sim}
+env: ${task.env}
+viewer: ${task.viewer}
+
+debug_launch:
+  steps: 20000
+  print_every: 60
+  action_mode: hold  # hold, forward, strafe, yaw, circle, ros2_joy, bt_auto
+  action_scale: 0.18
+  reset_on_done: true
+  close_on_finish: false
+  ros2_joy:
+    udp_host: 127.0.0.1
+    udp_port: 15000
+    timeout_sec: 0.5
+  ros2_telemetry:
+    enable: false
+    udp_host: 127.0.0.1
+    udp_port: 15010
+    publish_every: 3
+    send_depth: true
+    depth_every: 10
+    send_rgb: true
+    rgb_every: 3
+    send_map: true
+    map_every: 1
+    image_rotate: ccw
+  ros2_goal:
+    enable: false
+    udp_host: 127.0.0.1
+    udp_port: 15020
+  bt_auto:
+    bt:
+      goal_tolerance: 1.0
+      stop_dist: 0.28
+      avoid_dist: 0.42
+      replan_dist: 0.50
+      side_block_dist: 0.24
+      replan_live_debug: true
+      crowd_backup_enable: true
+      crowd_dyn_min: 2
+      crowd_front_dist: 0.62
+      crowd_ttc_trigger: 1.4
+      crowd_backup_steps: 14
+      crowd_backoff_u: 0.18
+      crowd_backoff_v: 0.12
+      crowd_backoff_yaw: 0.55
+      escape_enable: true
+      escape_steps: 24
+      escape_no_progress_steps: 55
+      escape_side_switches: 4
+      escape_front_dist: 0.70
+      escape_min_dist: 0.35
+      escape_backoff_u: 0.24
+      escape_lateral_v: 0.22
+      escape_yaw: 0.60
+      escape_heave: 0.10
+      simple_mode: false
+      dynamic_enable: true
+      dynamic_from_observation_only: true
+      dynamic_go_enable: true
+      dynamic_go_ttc: 2.2
+      dynamic_yield_ttc: 1.0
+      dynamic_go_front_dist: 0.55
+      dynamic_slow_front_dist: 1.15
+      dynamic_go_speed_scale: 0.62
+      dynamic_corridor_half_width: 0.42
+      dynamic_crossing_margin: 0.10
+      dynamic_crossing_avoid_enable: true
+      dynamic_crossing_speed_thresh: 0.04
+      dynamic_crossing_avoid_fwd: 0.04
+      dynamic_crossing_avoid_lat: 0.25
+      dynamic_crossing_avoid_yaw: 0.28
+      dynamic_obs_est_speed_thresh: 0.08
+      dynamic_obs_est_min_rays: 2
+      dynamic_obs_est_max_markers: 8
+      dynamic_obs_est_center_offset_radius: 0.15
+      dynamic_obs_est_assoc_dist: 0.75
+      dynamic_obs_est_pos_ema: 0.35
+      dynamic_obs_est_vel_ema: 0.30
+      dynamic_obs_est_ttl_steps: 12
+      dynamic_obs_est_marker_min_speed: 0.04
+      dynamic_obs_est_map_threshold: 0.20
+      dynamic_obs_est_min_cells: 3
+      force_replan_on_avoid: false
+      min_replan_interval_steps: 140
+      replan_consecutive_trigger_steps: 18
+      path_only_mode: true
+      path_prefer_map_overlay: true
+      path_lookahead_points: 1
+      path_lookahead_dist: 1.0
+      path_priority_enable: true
+      path_lateral_gain: 2.0
+      path_yaw_gain: 1.5
+      path_lateral_slow_gain: 1.2
+      path_yaw_slow_gain: 0.7
+      path_min_u_scale: 0.25
+      corridor_commit_enable: true
+      corridor_commit_front_min: 0.75
+      corridor_commit_lateral_err: 0.35
+      corridor_commit_yaw_err: 0.45
+      corridor_commit_min_speed_scale: 0.45
+      max_fwd: 0.60
+      max_lat: 0.60
+      max_yaw: 0.50
+      align_yaw_threshold: 0.30
+      no_progress_steps_replan: 85
+      no_progress_steps_force: 35
+      stall_recovery_steps: 55
+      progress_commit_enable: true
+      progress_commit_steps: 85
+      progress_commit_front_min: 1.15
+      progress_commit_min_range: 0.70
+      progress_commit_yaw_err: 1.25
+      progress_commit_speed_scale: 0.70
+      progress_commit_dynamic_ttc_min: 2.50
+      goal_closeout_enable: true
+      goal_closeout_dist: 2.50
+      goal_closeout_front_min: 0.85
+      goal_closeout_min_range: 0.55
+      goal_closeout_yaw_err: 1.45
+      goal_closeout_speed_scale: 0.85
+      goal_closeout_dynamic_ttc_min: 1.80
+
+task:
+  env:
+    num_envs: 1
+    env_spacing: 30
+    max_episode_length: 2400
+
+  viewer:
+    eye: [9.0, -8.0, 5.0]
+    lookat: [10.0, 3.0, -0.8]
+    resolution: [1600, 900]
+
+  debug: true
+  debug_interval: 60
+
+  fixed_start_goal_enable: true
+  fixed_start_local: [3.0, 3.0, -0.8]
+  fixed_goal_local: [17.0, 3.0, -0.8]
+  fixed_start_goal_align_yaw: true
+
+  reset:
+    stable_pose: true
+    zero_velocity: true
+    random_yaw: false
+    yaw_deg: 0.0
+    collision_free_sampling: true
+    collision_clearance: 0.55
+
+  goal:
+    randomize: false
+    fixed: [17.0, 3.0, -0.8]
+    min_start_goal_dist: 0.0
+    collision_free_sampling: false
+
+  success_distance: 1.0
+  success_hold_steps: 1
+  path_follow_replan_interval: 60
+  terminate_on_collision: true
+  terminate_on_ttc: false
+  collision_check_mode: overlap
+  # Contact termination uses geometric overlap inflated by the ROV body radius.
+  # This is hull-contact logic, not sonar/proximity termination.
+  collision_overlap_clearance: 0.18
+  # Safe floor contact threshold. If the ROV reaches this depth it is treated
+  # as a physical collision so stuck-on-ground episodes reset immediately.
+  ground_collision_z: -1.5
+
+  termination:
+    enable: true
+    terminate_out_of_tank: false
+    terminate_on_invalid_state: true
+    grace_steps: 20
+    min_z: -1.5
+    max_z: 0.2
+    max_distance: 40.0
+    tank_bounds:
+      x_range: [0.0, 20.0]
+      y_range: [0.0, 6.5]
+      z_range: [-1.5, 0.2]
+
+  sonar:
+    num_rays: 256
+    fov_deg: 360.0
+    max_range: 12.0
+    min_range_filter: 0.2
+    # PhysX scene-query hits may have an empty path for valid colliders in this
+    # scene. Keep the deny-list for robot/target self-filtering, but do not
+    # require an allow-list path in observation-only mode.
+    hit_path_allow: []
+    hit_path_deny: ["/target", "/BlueROV", "/bluerov", "/drone", "/robot", "/base_link"]
+    filter_by_env: false
+    ignore_empty_path: false
+    debug_first_hit: true
+
+  depth_camera:
+    extra_data_types: [rgb]
+
+  observation:
+    sonar_features_enable: true
+    sonar_num_sectors: 16
+    include_front_min: true
+    include_front_ttc: true
+    front_angle_deg: 30.0
+    use_path_lookahead: true
+    path_lookahead_points: 2
+    path_fallback_to_goal: true
+
+  mapping:
+    enable: true
+    use_in_obs: false
+    # Slightly padded beyond the inner tank dimensions so ROS OccupancyGrid
+    # visualization includes wall-surface sonar returns at the tank edges.
+    bounds_min: [-0.2, -0.2, -2.0]
+    bounds_max: [20.2, 7.0, 2.0]
+    # Default debug navigation map is observation-only: the map used by the
+    # path overlay comes from live sonar/depth updates, not ground-truth object
+    # center/wall stamps. These can still be enabled from the launcher for
+    # controlled GT-assisted debugging.
+    classify_dynamic_from_gt: false
+    dynamic_stamp_from_gt: false
+    maze_stamp_from_gt: false
+    # Keep the map observation-only, but use the analytic sonar fallback for
+    # obstacle/wall ray intersections because PhysX scene queries see the tank
+    # collider but can miss these kinematic/static obstacle prims.
+    maze_wall_sonar_fallback: true
+    dynamic_obstacle_sonar_fallback: true
+    decay: 0.02
+    dynamic_decay: 0.35
+    static_hit_stamp_radius_m: 0.09
+    static_hit_stamp_inc: 0.35
+    dynamic_hit_stamp_radius_m: 0.08
+    dynamic_hit_stamp_inc: 0.35
+    free_dec: 0.02
+    dynamic_free_dec: 0.08
+    save_every: 0
+    reset_on_reset: false
+    path_overlay_enable: true
+    path_overlay_planner: voronoi
+    path_overlay_shortcut_enable: false
+    path_overlay_min_clearance: 0.85
+    path_overlay_occ_clearance: 0.85
+    path_overlay_resample_step: 0.15
+    path_overlay_dynamic_predict_enable: false
+    path_overlay_dynamic_horizon_sec: 3.0
+    path_overlay_dynamic_samples: 8
+    path_overlay_dynamic_inflate_add: 0.08
+    path_overlay_dynamic_inflate_per_mps: 0.20
+
+  planner_stack:
+    rrt:
+      use_map: true
+      planner_type: voronoi
+      path_replan_enable: true
+      path_replan_lookahead: 10
+      obstacle_inflate: 0.08
+      min_clearance: 0.0
+      occ_clearance: 0.0
+      map_occ_threshold: 0.45
+      dynamic_predict_enable: false
+      dynamic_predict_horizon_sec: 3.0
+      dynamic_predict_samples: 8
+      dynamic_predict_inflate_add: 0.08
+      dynamic_predict_inflate_per_mps: 0.20
+      grid_resolution: 0.20
+      voronoi_clearance_eps: 0.05
+      voronoi_fallback_rrt_enable: true
+      plot_every: 0
+
+  maze_walls:
+    enable: true
+    num: 3
+    length: 1.0
+    thickness: 0.20
+    height: 1.80
+    spawn_ranges:
+      x_range: [5.0, 15.0]
+      y_range: [1.0, 5.0]
+      z_range: [-0.8, -0.8]
+
+  obstacles:
+    enable: true
+    num: 6
+    radius: 0.25
+    height: 0.40
+    speed: 0.25
+    motion: line
+    line_axis: y
+    amp: [1.0, 1.0, 0.0]
+    spawn_ranges:
+      x_range: [5.0, 15.0]
+      y_range: [1.0, 5.0]
+      z_range: [-0.8, -0.8]
+
+  safety_shield:
+    enable: false
+
+  controller:
+    u_max: 0.45
+    v_max: 0.30
+    w_max: 0.25

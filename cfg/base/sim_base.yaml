@@ -1,0 +1,22 @@
+sim:
+  dt: 0.02
+  substeps: 2
+  gravity: [0, 0, -9.81]
+  # NOTE:
+  # - `replicate_physics=true` can break articulated robot joint wiring when cloning envs.
+  # - `clone_from_source=true` has also shown rotor-joint binding failures on some setups.
+  # Keep both OFF by default for stable BlueROV multi-env startup.
+  clone_mode: copy
+  replicate_physics: false
+  clone_from_source: true
+  use_flatcache: true
+  use_gpu_pipeline: true
+  device: "cuda:0"
+
+  solver_type: 1
+  use_gpu: True # set to False to run on CPU
+
+  # PhysX GPU buffers: prevent dropped interactions when many env/contact pairs exist.
+  gpu_found_lost_pairs_capacity: 4194304
+  gpu_found_lost_aggregate_pairs_capacity: 33554432
+  gpu_total_aggregate_pairs_capacity: 4194304

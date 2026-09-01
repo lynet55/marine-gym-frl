@@ -1,0 +1,65 @@
+# @package _global_
+# Preset: BT Autonomous, Point A to B (maze walls + moving obstacles).
+#
+# This is every value that release/scripts/01_run_bt_auto_point_a_to_b.sh
+# used to pass as one long inline command. Edit anything below and rerun —
+# no need to touch the shell script. You can still override a single value
+# per-run without editing this file, e.g.:
+#   bash release/scripts/01_run_bt_auto_point_a_to_b.sh task.obstacles.num=5
+#
+# Everything not listed here (sonar, camera, reward shaping, etc.) is
+# inherited unchanged from debug/open_hover_vel_env.yaml.
+
+defaults:
+  - /debug/open_hover_vel_env
+  - _self_
+
+task:
+  fixed_start_goal_enable: true
+  fixed_start_local: [3.0, 3.0, -0.8]
+  fixed_goal_local: [17.0, 3.0, -0.8]
+  fixed_start_goal_align_yaw: true
+
+  maze_walls:
+    enable: true
+    num: 3
+
+  obstacles:
+    enable: true
+    num: 3
+    speed: 0.40
+
+  terminate_on_collision: true
+  collision_check_mode: overlap
+  collision_overlap_clearance: 0.02
+  terminate_on_ttc: false
+
+  path_follow_replan_interval: 60
+
+  mapping:
+    classify_dynamic_from_gt: false
+    dynamic_stamp_from_gt: false
+    maze_stamp_from_gt: false
+    maze_wall_sonar_fallback: true
+    dynamic_obstacle_sonar_fallback: true
+    reset_on_reset: true
+    path_overlay_shortcut_enable: false
+    path_overlay_min_clearance: 0.85
+    path_overlay_occ_clearance: 0.85
+    path_overlay_resample_step: 0.15
+
+debug_launch:
+  bt_auto:
+    bt:
+      path_only_mode: false
+      dynamic_enable: true
+      dynamic_from_observation_only: true
+      dynamic_go_enable: true
+      dynamic_go_ttc: 1.8
+      dynamic_yield_ttc: 0.8
+      dynamic_go_front_dist: 0.70
+      dynamic_slow_front_dist: 1.25
+      dynamic_go_speed_scale: 0.55
+      force_replan_on_avoid: false
+      min_replan_interval_steps: 140
+      replan_consecutive_trigger_steps: 18
