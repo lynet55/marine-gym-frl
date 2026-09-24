@@ -35,6 +35,10 @@ config edit, not a code change.
 
 ## Before you can run anything
 
+For a fresh machine, follow **[INSTALLATION.md](INSTALLATION.md)**. It is the
+authoritative, end-to-end guide for the tested Isaac Sim 5.1 + IsaacLab v2.3.2
++ MarineGym + ROS 2 Jazzy stack, including verification and troubleshooting.
+
 This repo doesn't carry Isaac Sim or the physics engine with it — those are
 big, shared dependencies you're expected to already have (or set up once).
 Here's what you need:
@@ -52,10 +56,7 @@ Here's what you need:
   `<isaac-python> -m pip install -e .` run once from marinegym's own repo
   root. It also owns the BlueROV robot model itself — only the static tank
   scene ships in this repo, not the ROV. If you're setting this up on a
-  fresh machine, walk through
-  [docs/MARINEGYM_SETUP.md](docs/MARINEGYM_SETUP.md) — I wrote it as a
-  step-by-step so you don't have to piece it together from the upstream
-  README yourself.
+  fresh machine, use [INSTALLATION.md](INSTALLATION.md).
 - **ROS 2 Jazzy** (`rclpy`, `sensor_msgs`, `nav_msgs`, `geometry_msgs`,
   `tf2_ros`, `visualization_msgs`) — just `source /opt/ros/jazzy/setup.bash`
   before running the bridge scripts or `rviz2`.
@@ -145,8 +146,7 @@ Depending on what you're trying to do next, here's where I'd point you:
   diagram, and is honest about what I've tested and what still needs
   tuning.
 - Setting this up on a machine that's never seen Isaac Sim or MarineGym
-  before? [docs/MARINEGYM_SETUP.md](docs/MARINEGYM_SETUP.md) is the
-  from-scratch path.
+  before? [INSTALLATION.md](INSTALLATION.md) is the from-scratch path.
 
 ## Useful RViz/ROS2 topics
 
