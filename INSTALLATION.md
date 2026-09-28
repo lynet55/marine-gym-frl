@@ -203,7 +203,7 @@ If `import marinegym` fails, the editable install was probably run with a
 different Python interpreter. Re-run it with `$ISAACSIM_PYTHON_EXE`.
 
 If HTTPS authentication is unavailable, use the SSH clone URL
-`git.ntnu.no:mded/marinegym-isaacsim51.git` instead.
+`git@git.ntnu.no:mded/marinegym-isaacsim51.git` instead.
 
 The pinned commit makes the installation reproducible. To test newer companion
 repository changes, return to its `main` branch explicitly; do not silently
