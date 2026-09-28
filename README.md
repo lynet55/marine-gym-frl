@@ -53,8 +53,9 @@ Here's what you need:
   (`marinegym.envs.isaac_env`, `marinegym.envs.single.hover`,
   `marinegym.sensors.*`, `marinegym.utils.*`,
   `marinegym.controllers.hardcoded_mixer`), so you'll need
-  `<isaac-python> -m pip install -e .` run once from marinegym's own repo
-  root. It also owns the BlueROV robot model itself — only the static tank
+  `<isaac-python> -m pip install -e .` run once from the
+  [NTNU MarineGym compatibility repository](https://git.ntnu.no/mded/marinegym-isaacsim51).
+  It also owns the BlueROV robot model itself — only the static tank
   scene ships in this repo, not the ROV. If you're setting this up on a
   fresh machine, use [INSTALLATION.md](INSTALLATION.md).
 - **ROS 2 Jazzy** (`rclpy`, `sensor_msgs`, `nav_msgs`, `geometry_msgs`,

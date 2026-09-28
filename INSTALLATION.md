@@ -155,19 +155,21 @@ Stop it with `Ctrl+C` after training starts.
 ## 4. Install MarineGym into Isaac Sim's Python
 
 This repository contains the BlueROV task and tank scene, but not the external
-`marinegym` Python package or its BlueROV robot USD/YAML. Obtain the full
-companion source checkout. The tested workstation uses
-`https://github.com/eather0056/isaacsim.git` at `~/isaacsim`; despite the
-repository name, this is the checkout containing `setup.py` and the `marinegym/`
-package. Copying only that package directory is not enough.
+`marinegym` Python package or its BlueROV robot USD/YAML. Use the NTNU
+[MarineGym Isaac Sim 5.1 compatibility repository](https://git.ntnu.no/mded/marinegym-isaacsim51).
+It preserves the tested Isaac Sim 5.1 and TorchRL/TensorDict 0.7 port, BlueROV
+assets, and calibrated hard-coded mixer that are not present in the public
+[MarineGym upstream](https://github.com/Marine-RL/MarineGym).
 
 ```bash
-export MARINEGYM_PATH="$HOME/isaacsim"
+export MARINEGYM_PATH="$HOME/marinegym-isaacsim51"
 
 # Skip this clone if the checkout already exists.
-git clone https://github.com/eather0056/isaacsim.git "$MARINEGYM_PATH"
+git clone https://git.ntnu.no/mded/marinegym-isaacsim51.git \
+  "$MARINEGYM_PATH"
 
 cd "$MARINEGYM_PATH"
+git checkout 55c4bf8a9668cd94604e3f3edb68eb70cc6178bc
 "$ISAACSIM_PYTHON_EXE" -m pip install \
   "tensordict==0.7.2" \
   "torchrl==0.7.2"
@@ -199,6 +201,13 @@ and the smoke test in step 7 completes.
 
 If `import marinegym` fails, the editable install was probably run with a
 different Python interpreter. Re-run it with `$ISAACSIM_PYTHON_EXE`.
+
+If HTTPS authentication is unavailable, use the SSH clone URL
+`git.ntnu.no:mded/marinegym-isaacsim51.git` instead.
+
+The pinned commit makes the installation reproducible. To test newer companion
+repository changes, return to its `main` branch explicitly; do not silently
+replace the pinned revision in a verified setup.
 
 ## 5. Install ROS 2 Jazzy and RViz
 
