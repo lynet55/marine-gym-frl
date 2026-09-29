@@ -1,8 +1,11 @@
-# Installation and First Run
+# Native Installation and First Run
 
-This is the complete setup path for this repository. It installs the tested
-Isaac Sim, IsaacLab, MarineGym, and ROS 2 stack, verifies each layer, and then
-runs the BlueROV point-A-to-B demo.
+This is the setup path for installing everything directly on the host. It
+installs the tested Isaac Sim, IsaacLab, MarineGym, and ROS 2 stack, verifies
+each layer, and then runs the BlueROV point-A-to-B demo.
+
+To run the project in containers instead, without installing any of this on the
+host, follow [CONTAINERS.md](CONTAINERS.md).
 
 The project was tested with the following combination:
 
@@ -348,7 +351,7 @@ ros2 topic echo /tf_static --once
 ```
 
 For manual joystick/keyboard operation and the other launch modes, continue
-with [docs/QUICKSTART.md](docs/QUICKSTART.md).
+with [QUICKSTART.md](QUICKSTART.md).
 
 ## Troubleshooting
 

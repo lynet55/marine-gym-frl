@@ -55,13 +55,28 @@ registered there.
 
 ## Before you can run anything
 
-For a fresh machine, follow **[INSTALLATION.md](INSTALLATION.md)**. It is the
-authoritative, end-to-end guide for the tested Isaac Sim 5.1 + IsaacLab v2.3.2
-+ MarineGym + ROS 2 Jazzy stack, including verification and troubleshooting.
-
 This repo doesn't carry Isaac Sim or the physics engine with it — those are
-big, shared dependencies you're expected to already have (or set up once).
-Here's what you need:
+big, shared dependencies. There are two ways to get them; pick one:
+
+**Option 1 — containers:
+[docs/CONTAINERS.md](docs/CONTAINERS.md).** Everything runs in
+two containers: one with ROS 2 Jazzy (the bridges and RViz), one with Isaac Sim
+and MarineGym (the simulator and the BT controller). The host only needs
+Podman or Docker, the NVIDIA driver and the NVIDIA container toolkit — no Isaac
+Sim, MarineGym or ROS install, and it works on Linux distributions Isaac Sim
+doesn't support natively. The launch scripts below are the same, just started
+through `./run-container.sh` (the guide shows the exact commands). This is the
+easiest way to get going on a new machine.
+
+**Option 2 — native install:
+[docs/INSTALL_NATIVE.md](docs/INSTALL_NATIVE.md).** Everything is installed
+directly on the host: the tested Isaac Sim 5.1 + IsaacLab v2.3.2 + MarineGym +
+ROS 2 Jazzy stack, on Ubuntu 22.04/24.04. The guide is the authoritative,
+end-to-end path, including verification and troubleshooting. Choose this if you
+already have Isaac Sim installed, or need IsaacLab (e.g. for RL training), which
+the containers don't include.
+
+With a native install, here's what the repo expects to find:
 
 - **Isaac Sim.** Point `ISAAC_PY` at your Isaac Sim Python wrapper (defaults
   to `/home/eth11/isaacsim51/python.sh` if you don't set it).
@@ -78,7 +93,7 @@ Here's what you need:
   [NTNU MarineGym compatibility repository](https://git.ntnu.no/mded/marinegym-isaacsim51)).
   It also owns the BlueROV robot model itself — only the static tank
   scene ships in this repo, not the ROV. If you're setting this up on a
-  fresh machine, use [INSTALLATION.md](INSTALLATION.md).
+  fresh machine, use [docs/INSTALL_NATIVE.md](docs/INSTALL_NATIVE.md).
 - **ROS 2 Jazzy** (`rclpy`, `sensor_msgs`, `nav_msgs`, `geometry_msgs`,
   `tf2_ros`, `visualization_msgs`) — just `source /opt/ros/jazzy/setup.bash`
   before running the bridge scripts or `rviz2`.
@@ -168,7 +183,9 @@ Depending on what you're trying to do next, here's where I'd point you:
   diagram, and is honest about what I've tested and what still needs
   tuning.
 - Setting this up on a machine that's never seen Isaac Sim or MarineGym
-  before? [INSTALLATION.md](INSTALLATION.md) is the from-scratch path.
+  before? [docs/CONTAINERS.md](docs/CONTAINERS.md) and
+  [docs/INSTALL_NATIVE.md](docs/INSTALL_NATIVE.md) are the two from-scratch
+  paths (see [Before you can run anything](#before-you-can-run-anything)).
 
 ## Useful RViz/ROS2 topics
 
