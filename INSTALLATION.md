@@ -152,24 +152,32 @@ simulator viewport. Exit it with `Ctrl+C`. An optional headless RSL-RL test is:
 
 Stop it with `Ctrl+C` after training starts.
 
-## 4. Install MarineGym into Isaac Sim's Python
+## 4. Clone this repository and install MarineGym into Isaac Sim's Python
 
-This repository contains the BlueROV task and tank scene, but not the external
-`marinegym` Python package or its BlueROV robot USD/YAML. Use the NTNU
-[MarineGym Isaac Sim 5.1 compatibility repository](https://git.ntnu.no/mded/marinegym-isaacsim51).
-It preserves the tested Isaac Sim 5.1 and TorchRL/TensorDict 0.7 port, BlueROV
-assets, and calibrated hard-coded mixer that are not present in the public
+This repository contains the BlueROV task and tank scene. The `marinegym`
+Python package and its BlueROV robot USD/YAML come from the NTNU
+[MarineGym Isaac Sim 5.1 compatibility repository](https://git.ntnu.no/mded/marinegym-isaacsim51),
+which is included as a git submodule in `marinegym/`. It preserves the tested
+Isaac Sim 5.1 and TorchRL/TensorDict 0.7 port, BlueROV assets, and calibrated
+hard-coded mixer that are not present in the public
 [MarineGym upstream](https://github.com/Marine-RL/MarineGym).
 
+Clone with `--recursive` to get the submodule; it is fetched over SSH from NTNU
+GitLab (`git@git.ntnu.no:mded/marinegym-isaacsim51.git`), so you need an SSH key
+registered there. Skip the clone if the repository already exists. A GitHub
+mirror is also available at
+`https://github.com/eather0056/bluerov-bt-autonomous.git`.
+
 ```bash
-export MARINEGYM_PATH="$HOME/marinegym-isaacsim51"
+cd "$HOME"
+git clone --recursive https://git.ntnu.no/mded/bluerov-bt-autonomous.git
+cd "$HOME/bluerov-bt-autonomous"
 
-# Skip this clone if the checkout already exists.
-git clone https://git.ntnu.no/mded/marinegym-isaacsim51.git \
-  "$MARINEGYM_PATH"
+# If the repository was cloned without --recursive, fetch the submodule:
+git submodule update --init
 
+export MARINEGYM_PATH="$HOME/bluerov-bt-autonomous/marinegym"
 cd "$MARINEGYM_PATH"
-git checkout 55c4bf8a9668cd94604e3f3edb68eb70cc6178bc
 "$ISAACSIM_PYTHON_EXE" -m pip install \
   "tensordict==0.7.2" \
   "torchrl==0.7.2"
@@ -202,12 +210,18 @@ and the smoke test in step 7 completes.
 If `import marinegym` fails, the editable install was probably run with a
 different Python interpreter. Re-run it with `$ISAACSIM_PYTHON_EXE`.
 
-If HTTPS authentication is unavailable, use the SSH clone URL
-`git@git.ntnu.no:mded/marinegym-isaacsim51.git` instead.
+If SSH access to NTNU GitLab is unavailable, fetch the submodule over HTTPS
+instead, from inside this repository:
 
-The pinned commit makes the installation reproducible. To test newer companion
-repository changes, return to its `main` branch explicitly; do not silently
-replace the pinned revision in a verified setup.
+```bash
+git config submodule.marinegym.url https://git.ntnu.no/mded/marinegym-isaacsim51.git
+git submodule update --init
+```
+
+The submodule pins the tested MarineGym commit, which makes the installation
+reproducible. To test newer companion repository changes, check out its `main`
+branch explicitly inside `marinegym/`; do not silently replace the pinned
+revision in a verified setup.
 
 ## 5. Install ROS 2 Jazzy and RViz
 
@@ -232,12 +246,10 @@ interactive terminals too when using `ros2`, `rviz2`, or `joy_node` directly.
 ## 6. Configure this repository
 
 No package installation is needed for this repository. Its Python entrypoints
-load `src/bluerov_manual` directly. Clone or enter the repository, then export
-the Isaac Sim interpreter path:
+load `src/bluerov_manual` directly. Enter the repository cloned in step 4, then
+export the Isaac Sim interpreter path:
 
 ```bash
-cd "$HOME"
-git clone https://git.ntnu.no/mded/bluerov-bt-autonomous.git
 cd "$HOME/bluerov-bt-autonomous"
 
 export ISAACSIM_PATH="$HOME/isaacsim51"
@@ -248,11 +260,10 @@ test -x "$ISAAC_PY"
 test -f assets/usd/BlueROV/tank.usd
 ```
 
-Skip the clone command if the repository already exists. A GitHub mirror is also
-available at `https://github.com/eather0056/bluerov-bt-autonomous.git`. The launch scripts
-default to `/home/eth11/isaacsim51/python.sh`; setting `ISAAC_PY` makes them
-portable to other usernames and install locations. Put the three exports in
-your shell profile if you want them to persist across terminals.
+The launch scripts default to `/home/eth11/isaacsim51/python.sh`; setting
+`ISAAC_PY` makes them portable to other usernames and install locations. Put the
+three exports in your shell profile if you want them to persist across
+terminals.
 
 ## 7. Run the repository smoke test
 

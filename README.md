@@ -33,6 +33,26 @@ changing behavior in code.** Almost everything you'll want to do — change
 the start/goal, add obstacles, swap the tank, retune the controller — is a
 config edit, not a code change.
 
+## Getting the code
+
+MarineGym is included as a git submodule (`marinegym/`), so clone with
+`--recursive`:
+
+```bash
+git clone --recursive https://git.ntnu.no/mded/bluerov-bt-autonomous.git
+```
+
+If you already cloned without it, fetch the submodule from inside the
+repository:
+
+```bash
+git submodule update --init
+```
+
+The submodule is fetched over SSH from NTNU GitLab
+(`git@git.ntnu.no:mded/marinegym-isaacsim51.git`), so you need an SSH key
+registered there.
+
 ## Before you can run anything
 
 For a fresh machine, follow **[INSTALLATION.md](INSTALLATION.md)**. It is the
@@ -53,8 +73,9 @@ Here's what you need:
   (`marinegym.envs.isaac_env`, `marinegym.envs.single.hover`,
   `marinegym.sensors.*`, `marinegym.utils.*`,
   `marinegym.controllers.hardcoded_mixer`), so you'll need
-  `<isaac-python> -m pip install -e .` run once from the
-  [NTNU MarineGym compatibility repository](https://git.ntnu.no/mded/marinegym-isaacsim51).
+  `<isaac-python> -m pip install -e .` run once from the `marinegym/`
+  submodule (the
+  [NTNU MarineGym compatibility repository](https://git.ntnu.no/mded/marinegym-isaacsim51)).
   It also owns the BlueROV robot model itself — only the static tank
   scene ships in this repo, not the ROV. If you're setting this up on a
   fresh machine, use [INSTALLATION.md](INSTALLATION.md).

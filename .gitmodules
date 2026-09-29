@@ -1,0 +1,3 @@
+[submodule "marinegym"]
+	path = marinegym
+	url = git@git.ntnu.no:mded/marinegym-isaacsim51.git
