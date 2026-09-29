@@ -7,3 +7,4 @@ experiments/
 .claude/
 .vscode/
 
+.cache/
