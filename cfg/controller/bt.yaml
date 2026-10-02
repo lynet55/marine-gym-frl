@@ -1,0 +1,7 @@
+# @package _global_
+# Behavior tree: scripts/play_bluerov_behavior_tree_maze.py::RobustMazeBTController,
+# with the same tuning as debug_launch.action_mode=bt_auto.
+
+controller:
+  target: controllers.BehaviorTreeController
+  bt: ${debug_launch.bt_auto.bt}

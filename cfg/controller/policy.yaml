@@ -1,0 +1,12 @@
+# @package _global_
+# Trained policy: scripts/controllers.py::PolicyController.
+# Also applies the observation/action contract the policy was trained with.
+
+defaults:
+  - /policy: sonar_goal
+  - _self_
+
+controller:
+  target: controllers.PolicyController
+  checkpoint: ""  # .pt written by scripts/train_policy.py; relative to the repository root
+  strict: true    # refuse a checkpoint trained with a different contract

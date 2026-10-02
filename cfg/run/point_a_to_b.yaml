@@ -1,0 +1,12 @@
+# @package _global_
+# Run a controller in the point-A-to-B scene (scripts/run_controller.py).
+#
+# The scene is cfg/debug/bt_auto_point_a_to_b.yaml: fixed start and goal, maze walls
+# and moving obstacles. The controller is the cfg/controller/ group: override it with
+# controller=bt (CONTROLLER=bt for release/scripts/03_run_controller.sh). To run in
+# another environment, copy this file and change the scene entry.
+
+defaults:
+  - /debug/bt_auto_point_a_to_b
+  - /controller: policy
+  - _self_

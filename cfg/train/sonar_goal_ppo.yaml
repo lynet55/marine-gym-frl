@@ -1,0 +1,82 @@
+# @package _global_
+# Train the sonar + goal policy with PPO (scripts/train_policy.py).
+#
+# The observation/action contract is cfg/policy/sonar_goal.yaml, shared with the
+# policy controller. This file holds the training scene and PPO settings: random
+# start and goal at the depth of the point-A-to-B scene, walls and moving obstacles
+# like cfg/debug/bt_auto_point_a_to_b.yaml, and the env's goal-progress reward
+# (path following off, so the occupancy map can stay off for speed).
+
+defaults:
+  - /train: train_bluerov_isaaclab_hover_vel_distill
+  - /policy: sonar_goal
+  - _self_
+
+headless: true
+mode: train
+train_iters: 2000
+steps_per_iter: 64
+save_interval: 100
+checkpoint_dir: ${hydra:runtime.cwd}/experiments/policies/sonar_goal/${now:%Y-%m-%d_%H-%M-%S}
+resume_checkpoint: ""  # continue a run from one of its checkpoints
+
+# Weights & Biases: the per-iteration metrics, plus a GIF of the Isaac Sim viewport every
+# render_every iterations. Online mode needs WANDB_API_KEY; offline runs stay in
+# <checkpoint_dir>/wandb for `wandb sync`.
+wandb:
+  enable: true
+  mode: online
+  project: bluerov_sonar_goal
+  group: sonar_goal_ppo
+  run_name: sonar_goal_ppo
+  entity: null         # W&B user or team; null uses your default
+  run_id: null         # resume this W&B run (together with resume_checkpoint)
+  tags: [sonar_goal, ppo]
+  render_every: 25     # iterations between viewport GIFs; 0 turns them off
+
+# MarineGym PPO: marinegym/marinegym/learning/ppo/ppo.py::PPOConfig
+algo:
+  ppo_epochs: 4
+  num_minibatches: 8
+  lr: 3.0e-4
+  entropy_coef: 0.003
+  clip_param: 0.2
+  gamma: 0.99
+  lmbda: 0.95
+  max_grad_norm: 1.0
+
+task:
+  env:
+    num_envs: 16
+
+  # Viewport camera of the W&B renders, relative to the env nearest the world origin.
+  viewer:
+    eye: [10.0, -10.0, 12.0]
+    lookat: [10.0, 3.25, -0.8]
+    resolution: [640, 360]
+
+  fixed_start_goal_enable: false
+  spawn_ranges:
+    z_range: [-0.8, -0.8]
+  goal:
+    randomize: true
+    spawn_ranges:
+      z_range: [-0.8, -0.8]
+
+  maze_walls:
+    num: 3
+    length: 1.0
+    spawn_ranges:
+      x_range: [5.0, 15.0]
+      y_range: [1.0, 5.0]
+  obstacles:
+    num: 3
+    speed: 0.40
+    spawn_ranges:
+      x_range: [5.0, 15.0]
+      y_range: [1.0, 5.0]
+      z_range: [-0.8, -0.8]
+
+  mapping:
+    enable: false
+  path_follow_reward_enable: false

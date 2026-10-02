@@ -164,6 +164,43 @@ straight on the command line — it'll override whatever's in the preset:
 bash release/scripts/01_run_bt_auto_point_a_to_b.sh task.obstacles.num=5
 ```
 
+## Training and running a policy
+
+`scripts/train_policy.py` trains a PPO policy (MarineGym's `PPOPolicy`) that sees
+the goal, the vehicle state and the sonar. `scripts/run_controller.py` runs a
+controller in an environment, either that policy or the behavior tree, with the
+same ROS 2 bridges and RViz setup as above (terminals 1 and 2).
+
+```bash
+# train headless; checkpoints and metrics.jsonl go to experiments/policies/sonar_goal/<timestamp>/
+bash release/scripts/02_train_policy.sh
+
+# run the policy in the point-A-to-B scene
+CHECKPOINT=experiments/policies/sonar_goal/<timestamp>/policy_final.pt \
+bash release/scripts/03_run_controller.sh
+
+# same entry point, behavior tree instead
+CONTROLLER=bt bash release/scripts/03_run_controller.sh
+```
+
+- `cfg/policy/sonar_goal.yaml` is what the policy observes and what its actions
+  mean. Training and running both include it, every checkpoint stores it, and the
+  policy controller refuses a checkpoint trained with different values.
+- `cfg/controller/` has one file per controller; `target` names its class in
+  `scripts/controllers.py`. Another controller, such as a different behavior
+  tree, is a class with `reset()` and `act()` plus one yaml file.
+- `cfg/run/point_a_to_b.yaml` is the environment the controller runs in; copy it
+  to run in another scene.
+- A goal clicked in RViz is replaced by the fixed goal when the episode resets;
+  `RESET_ON_DONE=false` keeps it.
+- Training logs to Weights & Biases: the metrics of every iteration and a GIF of
+  the Isaac Sim viewport every 25 iterations (`wandb.render_every`). Online mode
+  needs `WANDB_API_KEY` (`run-container.sh` passes it into the container).
+  `WANDB_MODE=offline` needs no account and keeps the run in
+  `experiments/policies/sonar_goal/<timestamp>/wandb/`; upload it later with
+  `$ISAAC_PY -m wandb sync <that dir>/offline-run-*`. `WANDB_ENABLE=false` turns
+  W&B off.
+
 ## Where to go from here
 
 Depending on what you're trying to do next, here's where I'd point you:

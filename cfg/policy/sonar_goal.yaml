@@ -1,0 +1,51 @@
+# @package _global_
+# Observation/action contract of the sonar + goal policy.
+#
+# Included by the training preset (cfg/train/sonar_goal_ppo.yaml) and by the policy
+# controller (cfg/controller/policy.yaml), so training and running see the same
+# observations and scale actions the same way. Checkpoints store these values
+# (scripts/controllers.py::CONTRACT_KEYS) and the policy controller refuses a
+# checkpoint trained with different ones. Changing anything here means retraining.
+
+task:
+  # Action [-1, 1] -> body velocity (m/s) and yaw rate (rad/s). The training config
+  # would otherwise inherit 0.7/0.55/0.55 from cfg/task; the debug presets use these.
+  controller:
+    u_max: 0.45
+    v_max: 0.30
+    w_max: 0.25
+    r_max: 0.5
+
+  sonar:
+    # The BT presets use 256 rays. Raycasting is a Python loop over envs and rays,
+    # the main cost of a training step, and 16 sectors only need a few rays each.
+    num_rays: 64
+    fov_deg: 360.0
+    max_range: 12.0
+    min_range_filter: 0.2
+    origin_offset: 0.05
+
+  # 30 values: goal vector in the body frame, body velocity, yaw rate, depth,
+  # roll/pitch (12), 16 sonar sector minima, front minimum and front TTC risk.
+  observation:
+    sonar_features_enable: true
+    sonar_num_sectors: 16
+    include_front_min: true
+    include_front_ttc: true
+    front_angle_deg: 30.0
+    use_path_lookahead: false   # true adds planner waypoints (needs task.mapping.enable)
+    path_lookahead_points: 2
+    path_fallback_to_goal: true
+
+  # Scale of the front TTC risk feature.
+  ttc_horizon: 3.0
+  ttc_min_forward_speed: 0.05
+
+  mapping:
+    # With mapping enabled, the sonar fallbacks clamp no-hit rays to mapping.max_range;
+    # matching the sonar range keeps the observation the same with mapping on or off.
+    max_range: ${task.sonar.max_range}
+    # These live under mapping but feed the sonar even with mapping off: without them
+    # the PhysX raycast misses the maze walls and the moving obstacles.
+    maze_wall_sonar_fallback: true
+    dynamic_obstacle_sonar_fallback: true

@@ -22,7 +22,8 @@ ENV HOME=/isaac-sim
 
 # Python packages for Isaac Sim's Python: the tested TensorDict/TorchRL versions and MarineGym's
 # runtime dependencies (see marinegym/setup.py; the unused ones are left out). tqdm is not in
-# setup.py, but marinegym imports it (a native install gets it through moviepy).
+# setup.py, but marinegym imports it (a native install gets it through moviepy). wandb is for
+# the Weights & Biases logging of scripts/train_policy.py.
 # PyTorch itself is bundled with Isaac Sim and must not be replaced.
 RUN /isaac-sim/python.sh -m pip install --no-cache-dir \
     tensordict==0.7.2 \
@@ -31,6 +32,7 @@ RUN /isaac-sim/python.sh -m pip install --no-cache-dir \
     omegaconf \
     einops \
     tqdm \
+    wandb \
     && /isaac-sim/python.sh -c "import torch; assert torch.__version__.startswith('2.7.0'), torch.__version__"
 
 # MarineGym: make the mounted submodule importable (like an editable install, without writing
