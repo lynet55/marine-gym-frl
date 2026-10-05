@@ -18,7 +18,7 @@ from rclpy._rclpy_pybind11 import RCLError
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image, LaserScan, PointCloud2, PointField
-from std_msgs.msg import String
+from std_msgs.msg import ColorRGBA, String
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -97,6 +97,9 @@ class UdpTelemetryPublisher(Node):
         self.rgb_pub = self.create_publisher(Image, "bluerov/camera/image_raw", qos)
         self.rgb_info_pub = self.create_publisher(CameraInfo, "bluerov/camera/camera_info", qos)
         self.obstacles_pub = self.create_publisher(PoseArray, "bluerov/obstacles", qos)
+        self.obstacle_markers_pub = self.create_publisher(MarkerArray, "bluerov/obstacles/markers", qos)
+        self.sonar_rays_pub = self.create_publisher(Marker, "bluerov/sonar/rays", qos)
+        self.body_pub = self.create_publisher(Marker, "bluerov/body", qos)
         self.dynamic_estimates_pub = self.create_publisher(
             MarkerArray, "bluerov/dynamic_obstacles_estimated", qos
         )
@@ -180,6 +183,7 @@ class UdpTelemetryPublisher(Node):
         tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.transform.translation.z = position
         tf_msg.transform.rotation = pose_msg.pose.orientation
         self.tf_broadcaster.sendTransform(tf_msg)
+        self._publish_body(stamp, child_frame_id)
 
         goal = payload.get("goal")
         if goal and goal.get("position") is not None:
@@ -221,6 +225,7 @@ class UdpTelemetryPublisher(Node):
                 world_angle = yaw + angle
                 points.append((px + r * math.cos(world_angle), py + r * math.sin(world_angle), pz))
             self.sonar_hits_reconstructed_pub.publish(_pointcloud_xyz(stamp, frame_id, points))
+            self._publish_sonar_rays(stamp, child_frame_id, scan)
 
         obstacles = payload.get("obstacles", []) or []
         pose_array = PoseArray()
@@ -233,6 +238,7 @@ class UdpTelemetryPublisher(Node):
             p.orientation.x, p.orientation.y, p.orientation.z, p.orientation.w = q
             pose_array.poses.append(p)
         self.obstacles_pub.publish(pose_array)
+        self._publish_obstacle_markers(stamp, frame_id, pose_array)
 
         dynamic_estimates = payload.get("dynamic_obstacle_estimates", []) or []
         self._publish_dynamic_estimates(stamp, frame_id, dynamic_estimates)
@@ -330,6 +336,51 @@ class UdpTelemetryPublisher(Node):
             separators=(",", ":"),
         )
         self.status_pub.publish(status)
+
+    def _publish_body(self, stamp, frame_id: str) -> None:
+        """BlueROV2 hull as a box (0.46 x 0.34 x 0.25 m, x forward), so rviz shows size and heading."""
+        m = Marker()
+        m.header.stamp, m.header.frame_id = stamp, frame_id
+        m.ns, m.id, m.type, m.action = "body", 0, Marker.CUBE, Marker.ADD
+        m.pose.orientation.w = 1.0
+        m.scale.x, m.scale.y, m.scale.z = 0.46, 0.34, 0.25
+        m.color = ColorRGBA(r=0.2, g=0.5, b=1.0, a=0.6)
+        self.body_pub.publish(m)
+
+    def _publish_sonar_rays(self, stamp, frame_id: str, scan: LaserScan) -> None:
+        """The simulated sonar as it is: one line per ray from the vehicle, in the body frame.
+        Hits are opaque and end at the hit, misses are faint and end at range_max."""
+        m = Marker()
+        m.header.stamp, m.header.frame_id = stamp, frame_id
+        m.ns, m.id, m.type, m.action = "sonar_rays", 0, Marker.LINE_LIST, Marker.ADD
+        m.pose.orientation.w = 1.0
+        m.scale.x = 0.008
+        hit_color = ColorRGBA(r=1.0, g=0.85, b=0.1, a=0.18)
+        miss_color = ColorRGBA(r=0.6, g=0.6, b=0.6, a=0.06)
+        for i, value in enumerate(scan.ranges):
+            hit = math.isfinite(value)
+            r = value if hit else scan.range_max
+            a = scan.angle_min + i * scan.angle_increment
+            m.points += [Point(), Point(x=r * math.cos(a), y=r * math.sin(a))]
+            m.colors += [hit_color if hit else miss_color] * 2
+        self.sonar_rays_pub.publish(m)
+
+    def _publish_obstacle_markers(self, stamp, frame_id: str, pose_array: PoseArray) -> None:
+        """Ground-truth obstacles at their true size (cylinders, task.obstacles.radius/height)."""
+        markers = MarkerArray()
+        clear = Marker()
+        clear.action = Marker.DELETEALL
+        markers.markers.append(clear)
+        d, h = 2.0 * float(self.args.obstacle_radius), float(self.args.obstacle_height)
+        for i, pose in enumerate(pose_array.poses):
+            m = Marker()
+            m.header.stamp, m.header.frame_id = stamp, frame_id
+            m.ns, m.id, m.type, m.action = "obstacles_gt", i, Marker.CYLINDER, Marker.ADD
+            m.pose = pose
+            m.scale.x, m.scale.y, m.scale.z = d, d, h
+            m.color = ColorRGBA(r=0.9, g=0.25, b=0.25, a=0.35)
+            markers.markers.append(m)
+        self.obstacle_markers_pub.publish(markers)
 
     def _publish_dynamic_estimates(self, stamp, frame_id: str, estimates: list[dict]) -> None:
         markers = MarkerArray()
@@ -537,6 +588,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dynamic-label-z-offset", type=float, default=0.22)
     parser.add_argument("--dynamic-marker-alpha", type=float, default=0.75)
     parser.add_argument("--dynamic-arrow-scale", type=float, default=0.70)
+    parser.add_argument("--obstacle-radius", type=float, default=0.25, help="task.obstacles.radius")
+    parser.add_argument("--obstacle-height", type=float, default=0.5, help="task.obstacles.height")
     parser.add_argument("--dynamic-markers-dynamic-only", action=argparse.BooleanOptionalAction, default=False)
     return parser.parse_args()
 
