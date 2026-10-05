@@ -108,3 +108,41 @@ In `cfg/train/sonar_goal_ppo.yaml`:
 
 - Reward: the env's goal-progress reward with the occupancy map off. The path-following reward needs the map and is slower.
 - `wandb.render_every: 25`: lower it for more GIFs, at about 2.4 MB each and a slower recorded iteration.
+
+## Additions, 3 October 2026
+
+### Changes
+
+| File | Change |
+|---|---|
+| `cfg/policy/sonar_goal.yaml` | Pins the sonar hit filters (`hit_path_allow`, `hit_path_deny`, `filter_by_env`, `ignore_empty_path`). Training and the BT presets set the same values, each on its own; the code defaults (`sonar.py`) drop valid colliders whose PhysX hit path is empty. |
+| `scripts/controllers.py` | The four filter keys join `CONTRACT_KEYS`. Checkpoints from before this change don't store them and are refused (`controller.strict=false` runs them anyway). |
+| `cfg/train/sonar_goal_ppo.yaml` | `wandb.entity`, and `wandb.api_key` (null uses `WANDB_API_KEY`). The file is tracked by git: keep a key out of commits (`git update-index --skip-worktree`). |
+| `scripts/train_policy.py` | A key in `wandb.api_key` goes to wandb through the environment and is cleared from the config, so it stays out of `config.yaml` and the W&B run config. Hydra's own `.hydra/config.yaml` still holds it. |
+
+Online W&B now tested: 30 iterations with 2 envs uploaded the per-iteration metrics and three viewport GIFs to `bbalinov-ntnu/bluerov_sonar_goal`.
+
+### Training settings that are inherited, not used
+
+`sonar_goal_ppo.yaml` loads `train_bluerov_isaaclab_hover_vel_distill.yaml`, so the composed config (and the W&B run config) contains `rsl`, `a2c`, `sac`, `distill_bt` and `world_model`. `train_policy.py` reads none of them: the algorithm settings are `algo` (MarineGym's `PPOConfig`). The network is fixed in `PPOPolicy` (`marinegym/learning/ppo/ppo.py`): separate actor and critic MLPs [256, 256, 256]. MarineGym has no SAC. Training starts from random weights unless `resume_checkpoint` is set.
+
+### How the reward reaches training
+
+`task.name: HoverVelStableGoal` (`cfg/task/hover_vel_stable_goal.yaml`) → `import bluerov_manual.envs` registers the class in `IsaacEnv.REGISTRY` → `train_policy.py` builds `IsaacEnv.REGISTRY[cfg.task.name]` → each `env.step` runs `IsaacEnv._step`, which calls `HoverVelStableGoal._compute_reward_and_done` (`src/bluerov_manual/envs/hover_vel_stable_goal.py:2123`). The reward lands in `("next", "agents", "reward")`; PPO's loss (clipped policy loss, entropy, Huber value loss) sees goal and sonar only through the reward (advantages, returns) and the observation.
+
+Class chain: `HoverVelStableGoal` → `HoverVel` (sonar, velocity controller) → MarineGym `Hover` → `IsaacEnv`.
+
+### The reward as trained
+
+With d the goal distance, ψ_g − ψ the heading error to the goal, c the minimum sonar range over all 64 rays and v_x the forward speed (weights marked * are code defaults, not set in any config):
+
+r = −0.01 + 5.0* · clip(d_{t−1} − d_t, ±2) − 0.25* · d + 0.2* · cos(ψ_g − ψ) + 0.5* · upright − 0.05* · tilt − 0.01* · effort − 1.0 · max(0, ‖v‖ − 0.7)² − 0.1 · max(0, 0.9 − c) − 0.3 · clip(1 − (c / max(v_x, 0.05)) / 3, 0, 1)
+
+clamped to ±20, then +10* on success (d ≤ 1 m for 10* steps) and −5* on a failed termination: collision (c ≤ 0.08 m), TTC (c / v_x ≤ 0.12 s) or leaving the tank. Path following is off (no occupancy map), so d and the heading use the straight line to the goal.
+
+### Issues found (not changed)
+
+- The clearance c is sonar only. `_compute_reward_and_done` also calls `_obstacle_clearance` (ground-truth obstacle distance), but only `HoverTankPPO` defines it; the `AttributeError` is swallowed by `except Exception: pass` (line 2208). Moving obstacles count when the sonar sees them (`dynamic_obstacle_sonar_fallback`).
+- The reward's TTC uses c over 360° (`front_min = min_clear`, line 2221), the observation's front TTC only ±30°. A wall beside or behind the robot penalizes, and can terminate, forward motion.
+- `reward_effort_weight`, `reward_distance_scale` and `reward_action_smoothness_weight` are in the composed config but the env reads other names (e.g. `reward_effort_penalty_weight`); they have no effect.
+- The shaping is small next to the progress term and the −5 failure penalty: avoidance is learned mostly from episodes ending.

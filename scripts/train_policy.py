@@ -95,6 +95,11 @@ def main(cfg) -> None:
     OmegaConf.register_new_resolver("eval", eval)
     OmegaConf.resolve(cfg)
     OmegaConf.set_struct(cfg, False)
+    # A key from the config goes to wandb through the environment and is cleared, so it stays
+    # out of config.yaml and the W&B run config.
+    if cfg.wandb.get("api_key"):
+        os.environ["WANDB_API_KEY"] = str(cfg.wandb.api_key)
+        cfg.wandb.api_key = None
 
     from bluerov_manual.sim_app import init_app
 

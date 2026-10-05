@@ -24,6 +24,13 @@ task:
     max_range: 12.0
     min_range_filter: 0.2
     origin_offset: 0.05
+    # Which hits count. The training and BT presets set these the same way, each on its
+    # own; pinned here so they can't drift. The code defaults (an allow-list, filter_by_env
+    # and ignore_empty_path on) drop valid colliders whose PhysX hit path is empty.
+    hit_path_allow: []
+    hit_path_deny: ["/target", "/BlueROV", "/bluerov", "/drone", "/robot", "/base_link"]
+    filter_by_env: false
+    ignore_empty_path: false
 
   # 30 values: goal vector in the body frame, body velocity, yaw rate, depth,
   # roll/pitch (12), 16 sonar sector minima, front minimum and front TTC risk.

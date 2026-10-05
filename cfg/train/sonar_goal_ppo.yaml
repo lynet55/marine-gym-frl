@@ -29,7 +29,10 @@ wandb:
   project: bluerov_sonar_goal
   group: sonar_goal_ppo
   run_name: sonar_goal_ppo
-  entity: null         # W&B user or team; null uses your default
+  entity: bbalinov-ntnu         # W&B user or team; null uses your default
+  # W&B API key; null uses WANDB_API_KEY from the environment. This file is tracked by git:
+  # don't commit a key (`git update-index --skip-worktree` on this file keeps it local).
+  api_key: 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
   run_id: null         # resume this W&B run (together with resume_checkpoint)
   tags: [sonar_goal, ppo]
   render_every: 25     # iterations between viewport GIFs; 0 turns them off
